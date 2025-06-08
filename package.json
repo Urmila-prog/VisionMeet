@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Video chat application for language learning",
   "scripts": {
-    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
-    "install-all": "npm install && cd frontend && npm install && cd ../backend && npm install"
+    "build": "npm install --prefix backend && install --prefix frontend && npm run build--prefix frontend",
+    "start": "npm run start --prefix backend"
   },
   "dependencies": {
     "@stream-io/video-react-sdk": "^1.18.4",
