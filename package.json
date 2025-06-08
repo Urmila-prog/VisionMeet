@@ -1,0 +1,19 @@
+{
+  "name": "visionmeet",
+  "version": "1.0.0",
+  "description": "Video chat application for language learning",
+  "scripts": {
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "install-all": "npm install && cd frontend && npm install && cd ../backend && npm install"
+  },
+  "dependencies": {
+    "@stream-io/video-react-sdk": "^1.18.4",
+    "react-hot-toast": "^2.5.2",
+    "concurrently": "^8.2.2"
+  },
+  "main": "index.js",
+  "devDependencies": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
