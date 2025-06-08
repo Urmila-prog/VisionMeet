@@ -1,7 +1,7 @@
 import axios from "axios";
 import toast from 'react-hot-toast';
 
-const BASE_URL = import.meta.env.MODE === "development" ? 'http://localhost:5003' : ''
+const BASE_URL = import.meta.env.MODE === "development" ? 'http://localhost:5003' : 'https://visionmeet.onrender.com'
 
 
 

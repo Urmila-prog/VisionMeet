@@ -30,7 +30,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
-        origin: /^http:\/\/localhost:\d+$/,
+        origin: ['https://visionmeet.onrender.com', /^http:\/\/localhost:\d+$/],
         credentials: true
     }
 });
@@ -43,7 +43,7 @@ app.use(cookieParser());
 
 // CORS configuration
 app.use(cors({
-    origin: true, // Allow all origins
+    origin: ['https://visionmeet.onrender.com', 'http://localhost:3000'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept'],
