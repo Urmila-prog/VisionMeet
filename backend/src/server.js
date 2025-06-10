@@ -7,6 +7,8 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import net from 'net';
+import fs from 'fs';
 
 import authRoutes from "./routes/auth.js";
 import userRoutes from './routes/user.js';
@@ -16,15 +18,41 @@ import { connectDB } from "./lib/lib.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables
-const result = config({ path: path.resolve(__dirname, '../.env') });
+// Try multiple possible locations for .env file
+const possibleEnvPaths = [
+    path.resolve(__dirname, '../.env'),           // backend/.env
+    path.resolve(__dirname, '../../.env'),        // root/.env
+    path.resolve(process.cwd(), '.env'),          // current directory/.env
+    path.resolve(process.cwd(), '../.env')        // parent directory/.env
+];
 
-if (result.error) {
-    console.error('Error loading .env file:', result.error);
+let envLoaded = false;
+for (const envPath of possibleEnvPaths) {
+    console.log('Trying to load .env from:', envPath);
+    if (fs.existsSync(envPath)) {
+        console.log('Found .env file at:', envPath);
+        const result = config({ path: envPath });
+        if (!result.error) {
+            envLoaded = true;
+            console.log('Successfully loaded .env from:', envPath);
+            break;
+        } else {
+            console.error('Error loading .env from', envPath, ':', result.error);
+        }
+    }
 }
 
-console.log('Environment loaded from:', path.resolve(__dirname, '../.env'));
+if (!envLoaded) {
+    console.error('Could not find or load .env file in any of the expected locations');
+}
+
 console.log('Current working directory:', process.cwd());
+console.log('Environment variables loaded:', {
+    STREAM_API_KEY: process.env.STREAM_API_KEY ? 'Present' : 'Missing',
+    STREAM_API_SECRET: process.env.STREAM_API_SECRET ? 'Present' : 'Missing',
+    JWT_SECRET_KEY: process.env.JWT_SECRET_KEY ? 'Present' : 'Missing',
+    MONGO_URI: process.env.MONGO_URI ? 'Present' : 'Missing'
+});
 
 const app = express();
 const httpServer = createServer(app);
@@ -35,7 +63,27 @@ const io = new Server(httpServer, {
     }
 });
 
-const PORT = 5003;
+// Function to check if a port is in use
+const isPortInUse = (port) => {
+    return new Promise((resolve) => {
+        const server = net.createServer()
+            .once('error', () => resolve(true))
+            .once('listening', () => {
+                server.close();
+                resolve(false);
+            })
+            .listen(port);
+    });
+};
+
+// Function to find an available port
+const findAvailablePort = async (startPort) => {
+    let port = startPort;
+    while (await isPortInUse(port)) {
+        port++;
+    }
+    return port;
+};
 
 // Middleware
 app.use(express.json());
@@ -115,6 +163,21 @@ app.use((req, res, next) => {
     next();
 });
 
+// Start server with port availability check
+const startServer = async () => {
+    try {
+        const port = await findAvailablePort(5003);
+        httpServer.listen(port, () => {
+            console.log(`Server is running on port ${port}`);
+            console.log(`Test the server with: http://localhost:${port}/test`);
+            console.log(`Frontend is being served from: ${frontendPath}`);
+        });
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+};
+
 // Connect to MongoDB
 connectDB();
 
@@ -138,9 +201,5 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-// Start server
-httpServer.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    console.log(`Test the server with: http://localhost:${PORT}/test`);
-    console.log(`Frontend is being served from: ${frontendPath}`);
-});
+// Start the server
+startServer();

@@ -18,7 +18,7 @@ export const SocketProvider = ({ children }) => {
     useEffect(() => {
         if (user) {
             console.log('Initializing socket connection for user:', user._id);
-            const newSocket = io('http://localhost:5003', {
+            const newSocket = io('@https://visionmeet.onrender.com', {
                 withCredentials: true
             });
 
