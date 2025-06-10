@@ -67,9 +67,13 @@ const io = new Server(httpServer, {
 const isPortInUse = (port) => {
     return new Promise((resolve) => {
         const server = net.createServer()
-            .once('error', () => resolve(true))
+            .once('error', (err) => {
+                console.log(`Port ${port} is in use: ${err.message}`);
+                resolve(true);
+            })
             .once('listening', () => {
                 server.close();
+                console.log(`Port ${port} is available`);
                 resolve(false);
             })
             .listen(port);
@@ -77,12 +81,20 @@ const isPortInUse = (port) => {
 };
 
 // Function to find an available port
-const findAvailablePort = async (startPort) => {
+const findAvailablePort = async (startPort, maxAttempts = 10) => {
     let port = startPort;
-    while (await isPortInUse(port)) {
+    let attempts = 0;
+    
+    while (attempts < maxAttempts) {
+        if (!(await isPortInUse(port))) {
+            return port;
+        }
+        console.log(`Port ${port} is in use, trying next port...`);
         port++;
+        attempts++;
     }
-    return port;
+    
+    throw new Error(`Could not find an available port after ${maxAttempts} attempts`);
 };
 
 // Middleware
@@ -168,12 +180,26 @@ const startServer = async () => {
     try {
         const port = await findAvailablePort(5003);
         httpServer.listen(port, () => {
-            console.log(`Server is running on port ${port}`);
-            console.log(`Test the server with: http://localhost:${port}/test`);
-            console.log(`Frontend is being served from: ${frontendPath}`);
+            console.log('=================================');
+            console.log(`🚀 Server is running on port ${port}`);
+            console.log(`📝 Test the server with: http://localhost:${port}/test`);
+            console.log(`🌐 Frontend is being served from: ${frontendPath}`);
+            console.log('=================================');
         });
+
+        // Handle server errors
+        httpServer.on('error', (error) => {
+            if (error.code === 'EADDRINUSE') {
+                console.error(`Port ${port} is already in use. Please try a different port.`);
+                process.exit(1);
+            } else {
+                console.error('Server error:', error);
+                process.exit(1);
+            }
+        });
+
     } catch (error) {
-        console.error('Failed to start server:', error);
+        console.error('Failed to start server:', error.message);
         process.exit(1);
     }
 };
