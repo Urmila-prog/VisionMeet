@@ -94,7 +94,7 @@ const chat = () => {
 
   const handleVideoCall = () => {
     if(channel) {
-      const callUrl = `${window.location.origin}/${channel.id}`;
+      const callUrl = `${window.location.origin}/call/${channel.id}`;
       channel.sendMessage({
         text: `I've started a video call. Join me: ${callUrl}`,
       });

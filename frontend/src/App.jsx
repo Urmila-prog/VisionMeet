@@ -109,7 +109,7 @@ const App = () => {
           path='/call/:id' 
           element={
             isAuthenticated && isOnboarded ? (
-              <Chat />
+              <Call />
             ) : (
               <Navigate to={!isAuthenticated ? '/login' : '/onboarding'} />
             )

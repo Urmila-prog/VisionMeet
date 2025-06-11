@@ -12,7 +12,6 @@ import {
   StreamTheme,
   CallingState,
   useCallStateHooks,
-  name,
 } from '@stream-io/video-react-sdk';
 
 // Import the CSS using a relative path
@@ -22,87 +21,136 @@ import toast from 'react-hot-toast';
 const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
 
 const Call = () => {
-  const {id:callId} = useParams();
-  const[client, setClient] = useState(null);
-  const[call, setCall] = useState(null);
-  const[isConnecting, setIsConnecting] = useState(true);
+  const { id: callId } = useParams();
+  const [client, setClient] = useState(null);
+  const [call, setCall] = useState(null);
+  const [isConnecting, setIsConnecting] = useState(true);
+  const navigate = useNavigate();
 
-  const {user, isLoading} = useAuthUser();
+  const { user, isLoading } = useAuthUser();
 
-  const {data:tokenData} = useQuery({
+  const { data: tokenData, error: tokenError } = useQuery({
     queryKey: ['streamToken'],
     queryFn: getStreamToken,
     enabled: !!user,
   });
 
-  useEffect(()=>{
+  useEffect(() => {
     const initCall = async () => {
-     if(tokenData.token || !user || !callId) return;
+      if (!tokenData?.token || !user || !callId) {
+        console.log('Missing required data:', {
+          hasToken: !!tokenData?.token,
+          hasUser: !!user,
+          hasCallId: !!callId
+        });
+        return;
+      }
+
       try {
-        console.log('initializing stream video client...');
+        console.log('Initializing stream video client...', {
+          userId: user._id,
+          callId: callId
+        });
 
-        const user = {
-          id:user._id,
-          name:user.Fullname,
-          image:user.profilePic,
-        }
-        const videoClilent = new StreamVideoClient({
+        const userData = {
+          id: user._id,
+          name: user.Fullname,
+          image: user.profilePic,
+        };
+
+        const videoClient = new StreamVideoClient({
           apiKey: STREAM_API_KEY,
-          user,
+          user: userData,
           token: tokenData.token,
-        })
+        });
 
-        const callInstance = videoClilent.call('default', callId);
-         await callInstance.join({create:true})
-         console.log('joined call successfully')
+        const callInstance = videoClient.call('default', callId);
+        await callInstance.join({ create: true });
+        console.log('Joined call successfully');
 
-         setClient(videoClilent)
-         setCall(callInstance)
+        setClient(videoClient);
+        setCall(callInstance);
       } catch (error) {
-        console.log('error joining call:', error);
-        toast.error('could not join the call. please try again.');
+        console.error('Error joining call:', error);
+        toast.error('Could not join the call. Please try again.');
+        navigate('/');
       } finally {
         setIsConnecting(false);
       }
-    }
-    initCall()
-  },[tokenData, user, callId]);
-  
-  if(isLoading || isConnecting) return <PageLoader />;
+    };
 
+    initCall();
+
+    return () => {
+      if (client) {
+        client.disconnectUser();
+      }
+    };
+  }, [tokenData, user, callId, navigate]);
+
+  if (isLoading || isConnecting) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="loading loading-spinner loading-lg"></div>
+          <p className="mt-4">Connecting to call...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (tokenError) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-error">Failed to initialize call. Please try again.</p>
+          <button 
+            className="btn btn-primary mt-4"
+            onClick={() => navigate('/')}
+          >
+            Return Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col items-center justify-center">
-      <div className='relative'>
-          {client && call ? (
-            <StreamVideo client={client} >
-              <StreamCall call={call} >
+      <div className='relative w-full h-full'>
+        {client && call ? (
+          <StreamVideo client={client}>
+            <StreamCall call={call}>
               <CallContent />
-              </StreamCall>
-            </StreamVideo>
-          ) : (
-              <div className='flex items-center justify-center h-full'>
-                <p>Could not initialize call. please try later.</p>
-              </div>
-          )}
+            </StreamCall>
+          </StreamVideo>
+        ) : (
+          <div className='flex items-center justify-center h-full'>
+            <p>Could not initialize call. Please try again later.</p>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 const CallContent = () => {
-    const {useCallCallingState} = useCallStateHooks()
-    const CallingState = useCallCallingState()
+  const { useCallCallingState } = useCallStateHooks();
+  const callingState = useCallCallingState();
+  const navigate = useNavigate();
 
-    const navigate = useNavigate();
+  useEffect(() => {
+    if (callingState === CallingState.LEFT) {
+      navigate('/');
+    }
+  }, [callingState, navigate]);
 
-    if(CallingState === CallingState.LEFT) return('/')
   return (
-    <StreamTheme>a
+    <StreamTheme>
       <SpeakerLayout />
       <CallControls />
     </StreamTheme>
-  )
-}
+  );
+};
 
 export default Call;
