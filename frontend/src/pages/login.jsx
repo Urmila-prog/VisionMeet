@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { login } from '../lib/api';
 import { ShipWheelIcon } from 'lucide-react';
-import { axiosInstance } from '../lib/axios';
+import api from '../lib/axios';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -19,8 +19,8 @@ const Login = () => {
       try {
         console.log('Login mutation - Attempting login with:', {
           email: credentials.email,
-          baseURL: axiosInstance.defaults.baseURL,
-          withCredentials: axiosInstance.defaults.withCredentials
+          baseURL: api.defaults.baseURL,
+          withCredentials: api.defaults.withCredentials
         });
         
         const response = await login(credentials);
