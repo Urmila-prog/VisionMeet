@@ -58,8 +58,10 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
-        origin: ['https://visionmeet.onrender.com', /^http:\/\/localhost:\d+$/],
-        credentials: true
+        origin: ['https://visionmeet.onrender.com', 'http://localhost:3000'],
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept']
     }
 });
 
@@ -103,7 +105,18 @@ app.use(cookieParser());
 
 // CORS configuration
 app.use(cors({
-    origin: ['https://visionmeet.onrender.com', 'http://localhost:3000'],
+    origin: function(origin, callback) {
+        const allowedOrigins = ['https://visionmeet.onrender.com', 'http://localhost:3000'];
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) === -1) {
+            console.log('CORS blocked request from origin:', origin);
+            return callback(new Error('Not allowed by CORS'), false);
+        }
+        console.log('CORS allowed request from origin:', origin);
+        return callback(null, true);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept'],
@@ -148,7 +161,52 @@ io.on('connection', (socket) => {
 // Make io accessible to our routes
 app.set('io', io);
 
-// Test route - Add more detailed response
+// Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/chat", chatRoutes);
+
+// Root endpoint
+app.get('/', (req, res) => {
+    const serverInfo = {
+        status: 'online',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+        version: '1.0.0',
+        endpoints: {
+            auth: {
+                login: '/api/auth/login',
+                signup: '/api/auth/signup',
+                logout: '/api/auth/logout',
+                me: '/api/auth/me'
+            },
+            users: {
+                profile: '/api/users/profile',
+                search: '/api/users/search',
+                friends: '/api/users/friends'
+            },
+            chat: {
+                token: '/api/chat/token',
+                messages: '/api/chat/messages'
+            }
+        },
+        server: {
+            host: req.headers.host,
+            protocol: req.protocol,
+            origin: req.headers.origin
+        }
+    };
+    
+    console.log('Root endpoint hit:', {
+        headers: req.headers,
+        cookies: req.cookies,
+        origin: req.headers.origin
+    });
+    
+    res.json(serverInfo);
+});
+
+// Test endpoint
 app.get('/test', (req, res) => {
     console.log('Test endpoint hit:', {
         headers: req.headers,
@@ -162,20 +220,22 @@ app.get('/test', (req, res) => {
     });
 });
 
-// Request logging middleware
-app.use((req, res, next) => {
-    console.log('Incoming request:', {
-        method: req.method,
-        url: req.url,
-        body: req.body,
-        headers: req.headers,
-        cookies: req.cookies,
-        origin: req.headers.origin
-    });
-    next();
+// Serve static files from the frontend build directory
+const frontendPath = path.join(__dirname, '../../frontend/dist');
+app.use(express.static(frontendPath));
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Server error:', err);
+    res.status(500).json({ message: 'Internal server error' });
 });
 
-// Start server with port availability check
+// Serve the frontend for all other routes
+app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
+// Start the server
 const startServer = async () => {
     try {
         // On Render, use the PORT provided by the platform
@@ -228,26 +288,6 @@ const startServer = async () => {
 
 // Connect to MongoDB
 connectDB();
-
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/chat", chatRoutes);
-
-// Serve static files from the frontend build directory
-const frontendPath = path.join(__dirname, '../../frontend/dist');
-app.use(express.static(frontendPath));
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error('Server error:', err);
-    res.status(500).json({ message: 'Internal server error' });
-});
-
-// Serve the frontend for all other routes
-app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendPath, 'index.html'));
-});
 
 // Start the server
 startServer();
