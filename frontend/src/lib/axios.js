@@ -1,7 +1,7 @@
 import axios from "axios";
 import toast from 'react-hot-toast';
 
-const BASE_URL = '@https://visionmeet.onrender.com'
+const BASE_URL = 'https://visionmeet.onrender.com';
 
 
 
