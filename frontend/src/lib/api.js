@@ -1,9 +1,9 @@
-import { axiosInstance } from "./axios";
+import api from "./axios";
 import { queryClient } from '../lib/queryClient';
 
 export const signup = async (signupData) => {
     try {
-        const response = await axiosInstance.post('/api/auth/signup', signupData);
+        const response = await api.post('/api/auth/signup', signupData);
         if (response.data.user && response.data.token) {
             localStorage.setItem('user', JSON.stringify(response.data.user));
             localStorage.setItem('token', response.data.token);
@@ -22,14 +22,14 @@ export const login = async (credentials) => {
         localStorage.removeItem('token');
         
         console.log('Attempting login with email:', credentials.email);
-        console.log('Login request URL:', `${axiosInstance.defaults.baseURL}/api/auth/login`);
+        console.log('Login request URL:', `${api.defaults.baseURL}/api/auth/login`);
         console.log('Login request config:', {
-            baseURL: axiosInstance.defaults.baseURL,
-            withCredentials: axiosInstance.defaults.withCredentials,
-            headers: axiosInstance.defaults.headers
+            baseURL: api.defaults.baseURL,
+            withCredentials: api.defaults.withCredentials,
+            headers: api.defaults.headers
         });
         
-        const response = await axiosInstance.post('/api/auth/login', credentials);
+        const response = await api.post('/api/auth/login', credentials);
         console.log('Login response:', response.data);
         
         if (!response.data.user || !response.data.token) {
@@ -78,7 +78,7 @@ export const getAuthUser = async () => {
         if (!token) {
             throw new Error('No token found');
         }
-        const res = await axiosInstance.get('/api/auth/me');
+        const res = await api.get('/api/auth/me');
         console.log('Auth user response:', res);
         return res.data;
     } catch (error) {
@@ -93,7 +93,7 @@ export const getAuthUser = async () => {
 
 export const logout = async () => {
     try {
-        await axiosInstance.post('/api/auth/logout');
+        await api.post('/api/auth/logout');
     } catch (error) {
         console.error('Error in logout:', error);
     } finally {
@@ -105,7 +105,7 @@ export const logout = async () => {
 
 export const completeOnboarding = async (userData) => {
     try {
-        const response = await axiosInstance.post('/api/auth/onboarding', userData);
+        const response = await api.post('/api/auth/onboarding', userData);
         if (response.data.user) {
             localStorage.setItem('user', JSON.stringify(response.data.user));
         }
@@ -118,7 +118,7 @@ export const completeOnboarding = async (userData) => {
 
 export const getUserFriends = async () => {
     try {
-        const response = await axiosInstance.get('/api/users/friends');
+        const response = await api.get('/api/users/friends');
         return response.data;
     } catch (error) {
         console.error('Error fetching friends:', error);
@@ -128,7 +128,7 @@ export const getUserFriends = async () => {
 
 export const getRecommendedUsers = async () => {
     try {
-        const response = await axiosInstance.get('/api/users/recommended');
+        const response = await api.get('/api/users/recommended');
         return response.data;
     } catch (error) {
         console.error('Error fetching recommended users:', error);
@@ -138,7 +138,7 @@ export const getRecommendedUsers = async () => {
 
 export const getOutgoingFriendRequests = async () => {
     try {
-        const response = await axiosInstance.get('/api/users/outgoing-friend-requests');
+        const response = await api.get('/api/users/outgoing-friend-requests');
         return response.data;
     } catch (error) {
         console.error('Error fetching outgoing friend requests:', error);
@@ -149,7 +149,7 @@ export const getOutgoingFriendRequests = async () => {
 export const sendFriendRequest = async (userId) => {
     try {
         console.log('Sending friend request to user:', userId);
-        const response = await axiosInstance.post(`/api/users/friend-request/${userId}`);
+        const response = await api.post(`/api/users/friend-request/${userId}`);
         console.log('Friend request sent successfully:', response.data);
         return response.data;
     } catch (error) {
@@ -161,7 +161,7 @@ export const sendFriendRequest = async (userId) => {
 export const getIncomingFriendRequests = async () => {
     try {
         console.log('Fetching incoming friend requests...');
-        const response = await axiosInstance.get('/api/users/friend-requests');
+        const response = await api.get('/api/users/friend-requests');
         console.log('Received friend requests response:', response.data);
         return response.data;
     } catch (error) {
@@ -175,7 +175,7 @@ export const getIncomingFriendRequests = async () => {
 
 export const acceptFriendRequest = async (requestId) => {
     try {
-        const response = await axiosInstance.put(`/api/users/friend-request/${requestId}/accept`);
+        const response = await api.put(`/api/users/friend-request/${requestId}/accept`);
         return response.data;
     } catch (error) {
         console.error('Error accepting friend request:', error);
@@ -185,7 +185,7 @@ export const acceptFriendRequest = async (requestId) => {
 
 export const getStreamToken = async () => {
     try {
-        const response = await axiosInstance.get('/api/chat/token');
+        const response = await api.get('/api/chat/token');
         return response.data;
     } catch (error) {
         console.error('Error getting stream token:', {
@@ -205,7 +205,7 @@ export const getStreamToken = async () => {
 
 export const getUserById = async (userId) => {
     try {
-        const response = await axiosInstance.get(`/api/users/${userId}`);
+        const response = await api.get(`/api/users/${userId}`);
         return response.data;
     } catch (error) {
         console.error('Error fetching user:', error);
@@ -215,7 +215,7 @@ export const getUserById = async (userId) => {
 
 export const createStreamUser = async (userId) => {
     try {
-        const response = await axiosInstance.post('/api/chat/user', { userId });
+        const response = await api.post('/api/chat/user', { userId });
         return response.data;
     } catch (error) {
         console.error('Error creating Stream user:', error);
