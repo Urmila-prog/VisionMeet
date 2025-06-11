@@ -58,11 +58,52 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
-        origin: ['https://visionmeet.onrender.com', 'http://localhost:3000'],
+        origin: function(origin, callback) {
+            const allowedOrigins = [
+                'https://visionmeet.onrender.com',
+                'http://localhost:3000',
+                'http://localhost:5173', // Vite dev server
+                'http://127.0.0.1:5173', // Vite dev server alternative
+                'https://visionmeet.vercel.app', // Vercel production
+                'https://*.vercel.app' // All Vercel preview deployments
+            ];
+            
+            // Allow requests with no origin (like mobile apps or curl requests)
+            if (!origin) {
+                console.log('Socket.IO - Request with no origin - allowing');
+                return callback(null, true);
+            }
+            
+            // Log all incoming origins for debugging
+            console.log('Socket.IO - Incoming request origin:', origin);
+            
+            // Check if origin matches any allowed pattern
+            const isAllowed = allowedOrigins.some(allowedOrigin => {
+                if (allowedOrigin.includes('*')) {
+                    // Handle wildcard domains
+                    const pattern = new RegExp('^' + allowedOrigin.replace('*', '.*') + '$');
+                    return pattern.test(origin);
+                }
+                return allowedOrigin === origin;
+            });
+            
+            if (!isAllowed) {
+                console.log('Socket.IO - CORS blocked request from origin:', origin);
+                return callback(new Error('Not allowed by CORS'), false);
+            }
+            
+            console.log('Socket.IO - CORS allowed request from origin:', origin);
+            return callback(null, true);
+        },
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept']
-    }
+        allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Accept'],
+        exposedHeaders: ['Set-Cookie'],
+        preflightContinue: false,
+        optionsSuccessStatus: 204
+    },
+    transports: ['websocket', 'polling'],
+    allowEIO3: true
 });
 
 // Function to check if a port is in use
@@ -110,7 +151,9 @@ app.use(cors({
             'https://visionmeet.onrender.com',
             'http://localhost:3000',
             'http://localhost:5173', // Vite dev server
-            'http://127.0.0.1:5173'  // Vite dev server alternative
+            'http://127.0.0.1:5173', // Vite dev server alternative
+            'https://visionmeet.vercel.app', // Vercel production
+            'https://*.vercel.app' // All Vercel preview deployments
         ];
         
         // Allow requests with no origin (like mobile apps or curl requests)
@@ -122,7 +165,17 @@ app.use(cors({
         // Log all incoming origins for debugging
         console.log('Incoming request origin:', origin);
         
-        if (allowedOrigins.indexOf(origin) === -1) {
+        // Check if origin matches any allowed pattern
+        const isAllowed = allowedOrigins.some(allowedOrigin => {
+            if (allowedOrigin.includes('*')) {
+                // Handle wildcard domains
+                const pattern = new RegExp('^' + allowedOrigin.replace('*', '.*') + '$');
+                return pattern.test(origin);
+            }
+            return allowedOrigin === origin;
+        });
+        
+        if (!isAllowed) {
             console.log('CORS blocked request from origin:', origin);
             return callback(new Error('Not allowed by CORS'), false);
         }

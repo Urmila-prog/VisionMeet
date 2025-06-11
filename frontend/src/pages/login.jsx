@@ -17,20 +17,43 @@ const Login = () => {
   const loginMutation = useMutation({
     mutationFn: async (credentials) => {
       try {
+        console.log('Login mutation - Attempting login with:', {
+          email: credentials.email,
+          baseURL: axiosInstance.defaults.baseURL,
+          withCredentials: axiosInstance.defaults.withCredentials
+        });
+        
         const response = await login(credentials);
-        console.log('Login response:', response);
+        console.log('Login mutation - Response:', {
+          status: response.status,
+          data: response.data,
+          headers: response.headers
+        });
         return response;
       } catch (error) {
-        console.error('Login attempt failed:', error);
+        console.error('Login mutation - Error:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          headers: error.response?.headers,
+          config: {
+            url: error.config?.url,
+            baseURL: error.config?.baseURL,
+            method: error.config?.method,
+            headers: error.config?.headers
+          }
+        });
         throw error;
       }
     },
     retry: 1, // Only retry once
     retryDelay: 2000, // Wait 2 seconds between retries
     onSuccess: (data) => {
-      console.log('Login successful:', data);
-      console.log('User data:', data.user);
-      console.log('Is onboarded:', data.user?.isOnboarded);
+      console.log('Login mutation - Success:', {
+        user: data.user,
+        isOnboarded: data.user?.isOnboarded,
+        token: data.token ? 'Present' : 'Missing'
+      });
       
       // Invalidate and refetch user data
       queryClient.invalidateQueries({ queryKey: ['user'] });
@@ -38,19 +61,25 @@ const Login = () => {
       
       // Check if user needs to complete onboarding
       if (!data.user.isOnboarded) {
-        console.log('User needs onboarding, redirecting to /onboarding');
+        console.log('Login mutation - User needs onboarding, redirecting to /onboarding');
         navigate('/onboarding');
       } else {
-        console.log('User is onboarded, redirecting to /');
+        console.log('Login mutation - User is onboarded, redirecting to /');
         navigate('/');
       }
     },
     onError: (error) => {
-      console.error('Login error details:', {
+      console.error('Login mutation - Error details:', {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
-        headers: error.response?.headers
+        headers: error.response?.headers,
+        config: {
+          url: error.config?.url,
+          baseURL: error.config?.baseURL,
+          method: error.config?.method,
+          headers: error.config?.headers
+        }
       });
       
       // More specific error messages based on the error

@@ -22,6 +22,13 @@ export const login = async (credentials) => {
         localStorage.removeItem('token');
         
         console.log('Attempting login with email:', credentials.email);
+        console.log('Login request URL:', `${axiosInstance.defaults.baseURL}/api/auth/login`);
+        console.log('Login request config:', {
+            baseURL: axiosInstance.defaults.baseURL,
+            withCredentials: axiosInstance.defaults.withCredentials,
+            headers: axiosInstance.defaults.headers
+        });
+        
         const response = await axiosInstance.post('/api/auth/login', credentials);
         console.log('Login response:', response.data);
         
@@ -45,6 +52,18 @@ export const login = async (credentials) => {
         return response.data;
     } catch (error) {
         console.error('Login error:', error);
+        console.error('Login error details:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status,
+            headers: error.response?.headers,
+            config: {
+                url: error.config?.url,
+                baseURL: error.config?.baseURL,
+                method: error.config?.method,
+                headers: error.config?.headers
+            }
+        });
         // Clear auth state on error
         localStorage.removeItem('user');
         localStorage.removeItem('token');
@@ -74,7 +93,7 @@ export const getAuthUser = async () => {
 
 export const logout = async () => {
     try {
-        await axiosInstance.post('/auth/logout');
+        await axiosInstance.post('/api/auth/logout');
     } catch (error) {
         console.error('Error in logout:', error);
     } finally {

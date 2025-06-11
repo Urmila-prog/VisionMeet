@@ -1,12 +1,16 @@
 import axios from "axios";
-import toast from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 
-const BASE_URL = 'https://visionmeet.onrender.com';
+// Determine the base URL based on the environment
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://visionmeet.onrender.com';
 
-
+// Log the current environment and API configuration
+console.log('Current environment:', import.meta.env.MODE);
+console.log('API URL:', BASE_URL);
+console.log('Current URL:', window.location.origin);
 
 // Create axios instance with default config
-export const axiosInstance = axios.create({
+const api = axios.create({
     baseURL: BASE_URL,
     withCredentials: true,
     timeout: 30000, // 30 seconds timeout
@@ -17,122 +21,99 @@ export const axiosInstance = axios.create({
 });
 
 // Request interceptor
-axiosInstance.interceptors.request.use(
+api.interceptors.request.use(
     (config) => {
+        // Log request details
+        console.log('Making request to:', config.url);
+        console.log('Request method:', config.method);
+        console.log('Request headers:', config.headers);
+        console.log('Request data:', config.data);
+        
         // Get token from localStorage
         const token = localStorage.getItem('token');
         const user = localStorage.getItem('user');
         
-        console.log('Request interceptor - Auth state:', {
+        // Log authentication state
+        console.log('Auth state:', {
             hasToken: !!token,
-            hasUser: !!user
+            hasUser: !!user,
+            tokenLength: token ? token.length : 0
         });
         
-        // If token exists, add it to the headers
+        // Add auth header if token exists
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
-            console.log('Added token to request headers');
-        } else {
-            console.log('No token found in localStorage');
-            // Remove any existing Authorization header
-            delete config.headers.Authorization;
         }
-
-        // Ensure CORS headers are set
-        config.withCredentials = true;
         
-        // Log the request for debugging
-        console.log('Making request to:', config.url, {
-            method: config.method,
-            data: config.data,
-            headers: {
-                ...config.headers,
-                Authorization: config.headers.Authorization ? 'Bearer [REDACTED]' : undefined
-            },
-            withCredentials: config.withCredentials
-        });
         return config;
     },
     (error) => {
-        console.error('Request interceptor error:', error.message);
+        console.error('Request error:', error);
         return Promise.reject(error);
     }
 );
 
 // Response interceptor
-axiosInstance.interceptors.response.use(
+api.interceptors.response.use(
     (response) => {
-        // Log successful responses for debugging
+        // Log successful response
         console.log('Response received:', {
-            url: response.config.url,
             status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
             data: response.data
         });
         return response;
     },
-    async (error) => {
+    (error) => {
         // Log detailed error information
-        const errorDetails = {
-            url: error.config?.url,
-            method: error.config?.method,
+        console.error('API Error:', {
+            message: error.message,
             status: error.response?.status,
-            message: error.response?.data?.message || error.message,
-            code: error.code
-        };
-        console.error('API Error:', errorDetails);
-
-        // Handle network errors
-        if (!error.response) {
-            // Check if it's a timeout
-            if (error.code === 'ECONNABORTED') {
-                toast.error('Request timed out. Please try again.');
-            } else {
-                // Check if it's a connection refused error
-                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                    console.error('Network error details:', {
-                        message: error.message,
-                        code: error.code,
-                        config: {
-                            url: error.config?.url,
-                            method: error.config?.method,
-                            baseURL: error.config?.baseURL
-                        }
-                    });
-                    toast.error('Unable to connect to the server. Please check your internet connection and try again.');
-                } else {
-                    toast.error('Network error. Please check your connection.');
-                }
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            config: {
+                url: error.config?.url,
+                method: error.config?.method,
+                headers: error.config?.headers,
+                data: error.config?.data
             }
-            return Promise.reject(error);
-        }
+        });
 
-        // Handle specific error status codes
-        switch (error.response.status) {
-            case 401:
-                // Clear auth data on unauthorized
-                localStorage.removeItem('user');
-                localStorage.removeItem('token');
-                toast.error('Session expired. Please login again.');
-                // Redirect to login if unauthorized
-                if (window.location.pathname !== '/login') {
+        // Handle specific error cases
+        if (error.response) {
+            switch (error.response.status) {
+                case 401:
+                    // Unauthorized - clear auth data and redirect to login
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
                     window.location.href = '/login';
-                }
-                break;
-            case 403:
-                toast.error('Access denied. Please check your permissions.');
-                break;
-            case 404:
-                toast.error('Resource not found.');
-                break;
-            case 500:
-                toast.error('Server error. Please try again later.');
-                break;
-            default:
-                // Use the error message from the server if available
-                const errorMessage = error.response?.data?.message || 'An error occurred. Please try again.';
-                toast.error(errorMessage);
+                    toast.error('Session expired. Please login again.');
+                    break;
+                case 403:
+                    toast.error('You do not have permission to perform this action.');
+                    break;
+                case 404:
+                    toast.error('The requested resource was not found.');
+                    break;
+                case 500:
+                    toast.error('An internal server error occurred. Please try again later.');
+                    break;
+                default:
+                    toast.error(error.response.data?.message || 'An error occurred');
+            }
+        } else if (error.request) {
+            // Network error
+            console.error('Network error:', error.request);
+            toast.error('Network error. Please check your connection.');
+        } else {
+            // Other error
+            console.error('Error:', error.message);
+            toast.error('An unexpected error occurred.');
         }
 
         return Promise.reject(error);
     }
 );
+
+export default api;
