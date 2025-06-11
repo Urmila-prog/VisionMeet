@@ -55,11 +55,13 @@ const Login = () => {
       
       // More specific error messages based on the error
       if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-        toast.error('Server is not running. Please start the backend server.');
+        toast.error('Unable to connect to the server. Please check your internet connection and try again.');
       } else if (error.response?.status === 401) {
         toast.error('Invalid email or password');
       } else if (error.response?.status === 400) {
         toast.error(error.response.data.message || 'Please fill in all fields');
+      } else if (error.code === 'ECONNABORTED') {
+        toast.error('Request timed out. Please try again.');
       } else {
         toast.error(error.response?.data?.message || 'Login failed. Please try again.');
       }

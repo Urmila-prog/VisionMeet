@@ -89,11 +89,16 @@ axiosInstance.interceptors.response.use(
             } else {
                 // Check if it's a connection refused error
                 if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                    toast.error('Server is not running. Please start the backend server.');
-                    // Only redirect to login if we're not already there
-                    if (window.location.pathname !== '/login') {
-                        window.location.href = '/login';
-                    }
+                    console.error('Network error details:', {
+                        message: error.message,
+                        code: error.code,
+                        config: {
+                            url: error.config?.url,
+                            method: error.config?.method,
+                            baseURL: error.config?.baseURL
+                        }
+                    });
+                    toast.error('Unable to connect to the server. Please check your internet connection and try again.');
                 } else {
                     toast.error('Network error. Please check your connection.');
                 }

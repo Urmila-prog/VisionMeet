@@ -106,14 +106,27 @@ app.use(cookieParser());
 // CORS configuration
 app.use(cors({
     origin: function(origin, callback) {
-        const allowedOrigins = ['https://visionmeet.onrender.com', 'http://localhost:3000'];
+        const allowedOrigins = [
+            'https://visionmeet.onrender.com',
+            'http://localhost:3000',
+            'http://localhost:5173', // Vite dev server
+            'http://127.0.0.1:5173'  // Vite dev server alternative
+        ];
+        
         // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
+        if (!origin) {
+            console.log('Request with no origin - allowing');
+            return callback(null, true);
+        }
+        
+        // Log all incoming origins for debugging
+        console.log('Incoming request origin:', origin);
         
         if (allowedOrigins.indexOf(origin) === -1) {
             console.log('CORS blocked request from origin:', origin);
             return callback(new Error('Not allowed by CORS'), false);
         }
+        
         console.log('CORS allowed request from origin:', origin);
         return callback(null, true);
     },

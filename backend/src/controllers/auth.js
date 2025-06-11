@@ -64,9 +64,10 @@ export async function signup(req,res){
         res.cookie('jwt', token, {
             maxAge: 7*24*60*60*1000,
             httpOnly: true,
-            sameSite: 'lax',
-            secure: false,
-            path: '/'
+            sameSite: 'none',
+            secure: true,
+            path: '/',
+            domain: process.env.RENDER ? '.render.com' : undefined
         });
          res.status(201).json({
              success: true, 
