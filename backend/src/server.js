@@ -178,11 +178,28 @@ app.use((req, res, next) => {
 // Start server with port availability check
 const startServer = async () => {
     try {
-        const port = await findAvailablePort(5003);
-        httpServer.listen(port, () => {
+        // On Render, use the PORT provided by the platform
+        // In development, use our port finding logic
+        const port = process.env.PORT || await findAvailablePort(5003);
+        
+        if (!port) {
+            throw new Error('No port available. Please check your environment configuration.');
+        }
+
+        // Log environment information
+        console.log('Environment:', {
+            NODE_ENV: process.env.NODE_ENV,
+            PORT: port,
+            RENDER: process.env.RENDER ? 'true' : 'false',
+            ENV: process.env.RENDER ? 'production' : 'development'
+        });
+
+        httpServer.listen(port, '0.0.0.0', () => {
             console.log('=================================');
             console.log(`🚀 Server is running on port ${port}`);
-            console.log(`📝 Test the server with: http://localhost:${port}/test`);
+            if (!process.env.RENDER) {
+                console.log(`📝 Test the server with: http://localhost:${port}/test`);
+            }
             console.log(`🌐 Frontend is being served from: ${frontendPath}`);
             console.log('=================================');
         });
@@ -190,7 +207,12 @@ const startServer = async () => {
         // Handle server errors
         httpServer.on('error', (error) => {
             if (error.code === 'EADDRINUSE') {
-                console.error(`Port ${port} is already in use. Please try a different port.`);
+                console.error(`Port ${port} is already in use.`);
+                if (process.env.RENDER) {
+                    console.error('On Render: Port conflict detected. Please remove any PORT environment variable from your Render service configuration.');
+                } else {
+                    console.error('Please try a different port or stop the process using this port.');
+                }
                 process.exit(1);
             } else {
                 console.error('Server error:', error);

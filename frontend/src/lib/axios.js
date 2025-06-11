@@ -9,7 +9,7 @@ const BASE_URL = '@https://visionmeet.onrender.com'
 export const axiosInstance = axios.create({
     baseURL: BASE_URL,
     withCredentials: true,
-    timeout: 15000, // 15 seconds timeout
+    timeout: 30000, // 30 seconds timeout
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
